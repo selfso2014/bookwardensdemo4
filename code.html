@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Read. The Book Wardens - Prototype</title>
+    
+    <!-- External Resources (Fonts, Icons, Tailwind) -->
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
+    <!-- React Dependencies -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/history@5/umd/history.development.js"></script>
+    <script src="https://unpkg.com/react-router@6.3.0/umd/react-router.development.js"></script>
+    <script src="https://unpkg.com/react-router-dom@6.3.0/umd/react-router-dom.development.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#930df2",
+                        "primary-hover": "#7a0bc9",
+                        "primary-dark": "#5e00a3",
+                        "background-light": "#f7f5f8",
+                        "background-dark": "#1b1022",
+                        "surface-dark": "#291834",
+                        "surface-darker": "#23152d",
+                        "surface-light": "#392249",
+                        "accent-purple": "#b290cb",
+                        "border-purple": "#513168",
+                        "accent-gold": "#FFD700",
+                        "accent-silver": "#C0C0C0",
+                        "accent-bronze": "#CD7F32",
+                        "accent-green": "#0bda76",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem", 
+                        "lg": "0.5rem", 
+                        "xl": "0.75rem", 
+                        "2xl": "1rem", 
+                        "3xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                    boxShadow: {
+                        'glow': '0 0 15px rgba(147, 13, 242, 0.6), 0 0 30px rgba(147, 13, 242, 0.3)',
+                        'inner-glow': 'inset 0 0 20px rgba(147, 13, 242, 0.2)'
+                    }
+                },
+            },
+        }
+    </script>
+
+    <style>
+        body {
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .glow-text {
+            text-shadow: 0 0 10px rgba(147, 13, 242, 0.5);
+        }
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // --- Setup & Imports ---
+        const { useState, useEffect } = React;
+        const { createRoot } = ReactDOM;
+        const { MemoryRouter, Routes, Route, Link, useNavigate, useLocation } = ReactRouterDOM;
+
+        // --- Shared Components ---
+
+        // Bottom Navigation Bar (Used on multiple screens)
+        const BottomNav = ({ active }) => {
+            const navigate = useNavigate();
+            const getActiveColor = (name) => active === name ? "text-primary" : "text-gray-400 hover:text-white";
+            const getIconStyle = (name) => active === name ? { fontVariationSettings: "'FILL' 1" } : {};
+
+            return (
+                <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-surface-dark/95 backdrop-blur-lg border-t border-border-purple/30 pb-safe pt-2 px-6 z-50">
+                    <div className="flex justify-between items-end pb-4">
+                        <button onClick={() => navigate('/dashboard')} className={`flex flex-col items-center gap-1 w-16 ${getActiveColor('home')}`}>
+                            <span className="material-symbols-outlined text-2xl" style={getIconStyle('home')}>home</span>
+                            <span className="text-[10px] font-medium">Home</span>
+                        </button>
+                        <button onClick={() => navigate('/library')} className={`flex flex-col items-center gap-1 w-16 ${getActiveColor('library')}`}>
+                            <span className="material-symbols-outlined text-2xl" style={getIconStyle('library')}>menu_book</span>
+                            <span className="text-[10px] font-medium">Library</span>
+                        </button>
+                        <button onClick={() => navigate('/progress')} className={`flex flex-col items-center gap-1 w-16 ${getActiveColor('progress')}`}>
+                            <span className="material-symbols-outlined text-2xl" style={getIconStyle('progress')}>monitoring</span>
+                            <span className="text-[10px] font-medium">Progress</span>
+                        </button>
+                        <button onClick={() => navigate('/profile')} className={`flex flex-col items-center gap-1 w-16 ${getActiveColor('profile')}`}>
+                            <span className="material-symbols-outlined text-2xl" style={getIconStyle('profile')}>person</span>
+                            <span className="text-[10px] font-medium">Profile</span>
+                        </button>
+                    </div>
+                </nav>
+            );
+        };
+
+        // --- Screen Components ---
+
+        // Screen 1: Welcome
+        const WelcomeScreen = () => {
+            const navigate = useNavigate();
+            return (
+                <div className="flex flex-col min-h-screen">
+                    <div className="relative flex-1 w-full flex flex-col items-center justify-start pt-8 pb-4 px-6 gap-6">
+                        <div className="w-full flex justify-between items-center text-xs opacity-50 px-2 absolute top-2 left-0 right-0">
+                            <span>9:41</span>
+                            <div className="flex gap-1 items-center">
+                                <span className="material-symbols-outlined text-[16px]">signal_cellular_alt</span>
+                                <span className="material-symbols-outlined text-[16px]">wifi</span>
+                                <span className="material-symbols-outlined text-[16px]">battery_full</span>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 mt-6">
+                            <div className="bg-primary/20 p-2 rounded-xl border border-primary/30">
+                                <span className="material-symbols-outlined text-primary text-2xl">auto_stories</span>
+                            </div>
+                            <h2 className="text-sm font-bold tracking-widest uppercase text-primary/80">Book Wardens</h2>
+                        </div>
+                        <div className="w-full relative aspect-[4/5] max-h-[40vh] rounded-2xl overflow-hidden shadow-2xl shadow-primary/20 border border-primary/10">
+                            <div className="absolute inset-0 bg-gradient-to-t from-background-dark via-transparent to-transparent z-10"></div>
+                            <div className="w-full h-full bg-center bg-cover bg-no-repeat transform hover:scale-105 transition-transform duration-700" 
+                                 style={{backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuD-pcx-3Yb8MVx9F-Mrz1PkYq_RYwXTilh29feCTbF8qyWImqEzS_DZf2GFxT5jQSkuKsflDI-BR7WM2diuASdJubuYR9-6KZi3WvB1B_ei0aFsbXlqVEpwhcJcq9vQ4NNtXzDFQibY6e4g2elMeQPQUSpf3IuEOWatRJAXTw7CaN7wWQxxkGIMJtLhpoj2mgfUJQSUYxFTIFJabqf2XeLxBIrLQWL-ygqBrzYHJa4Z9seS_cG-Gzj86CIvHiOIss331TZ-8YHtpBNk")'}}>
+                            </div>
+                            <div className="absolute top-4 right-4 z-20 bg-background-dark/80 backdrop-blur-md border border-primary/30 py-1 px-3 rounded-full flex items-center gap-1">
+                                <span className="material-symbols-outlined text-primary text-xs">visibility</span>
+                                <span className="text-[10px] font-medium text-white tracking-wide">Eye-Tracking Active</span>
+                            </div>
+                        </div>
+                        <div className="text-center space-y-2 max-w-xs z-20">
+                            <h1 className="text-3xl font-black tracking-tight leading-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-purple-100 to-primary/80">
+                                Welcome to the Rift
+                            </h1>
+                            <p className="text-slate-400 text-sm font-light leading-relaxed">
+                                Turn chapters into levels. Your reading speed is your weapon.
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div className="w-full pl-6 pb-2">
+                        <div className="flex overflow-x-auto gap-4 pb-4 pr-6 snap-x snap-mandatory no-scrollbar">
+                             {/* Cards */}
+                            <div className="snap-center shrink-0 w-[240px] bg-white/5 border border-white/10 p-4 rounded-xl flex flex-col gap-3 hover:bg-white/10 transition-colors">
+                                <div className="h-10 w-10 rounded-lg bg-primary/20 flex items-center justify-center text-primary">
+                                    <span className="material-symbols-outlined">castle</span>
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-white text-base">Conquer Dungeons</h3>
+                                    <p className="text-xs text-slate-400 mt-1">Defeat monsters by completing chapters with comprehension.</p>
+                                </div>
+                            </div>
+                            <div className="snap-center shrink-0 w-[240px] bg-white/5 border border-white/10 p-4 rounded-xl flex flex-col gap-3 hover:bg-white/10 transition-colors">
+                                <div className="h-10 w-10 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                                    <span className="material-symbols-outlined">remove_red_eye</span>
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-white text-base">Eye-Tracking Magic</h3>
+                                    <p className="text-xs text-slate-400 mt-1">Advanced gaze detection improves your focus in real-time.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="w-full px-6 pb-8 pt-2 flex flex-col gap-4 bg-gradient-to-t from-background-dark to-transparent">
+                        <button onClick={() => navigate('/onboarding')} className="group relative w-full flex items-center justify-center bg-primary hover:bg-purple-600 active:scale-[0.98] transition-all rounded-xl h-14 shadow-[0_0_20px_rgba(147,13,242,0.3)] overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                            <span className="material-symbols-outlined mr-2 text-white/90">swords</span>
+                            <span className="font-bold text-lg tracking-wide text-white">Enter the Rift</span>
+                        </button>
+                        <div className="flex flex-col items-center gap-4">
+                            <button onClick={() => navigate('/dashboard')} className="text-sm font-medium text-purple-300 hover:text-white transition-colors flex items-center gap-1">
+                                Already a Warden? <span className="underline decoration-primary underline-offset-4">Log In</span>
+                            </button>
+                            <p className="text-[10px] text-slate-600 font-mono uppercase tracking-widest">v1.0 • Eye-Tracking Tech</p>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Screen 9: Onboarding
+        const OnboardingScreen = () => {
+            const navigate = useNavigate();
+            return (
+                <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden">
+                    <div className="flex items-center p-4 pb-2 justify-between">
+                        <h2 className="text-lg font-bold leading-tight tracking-[-0.015em] flex-1"></h2>
+                        <div className="flex w-12 items-center justify-end">
+                            <button onClick={() => navigate('/calibration')} className="text-text-secondary hover:text-white transition-colors text-base font-bold leading-normal tracking-[0.015em] shrink-0">Skip</button>
+                        </div>
+                    </div>
+                    <h1 className="tracking-light text-[32px] font-bold leading-tight px-6 text-left pb-6 pt-2">
+                        How the <span className="text-primary">App</span> Works
+                    </h1>
+                    <div className="flex-1 overflow-y-auto">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-4 pb-4">
+                            {[
+                                {icon: 'visibility', title: 'Read', desc: 'Read daily chapters. Eye-tracking ensures you stay focused.'},
+                                {icon: 'quiz', title: 'Understand', desc: 'Answer quick questions to defeat monsters and unlock the path.'},
+                                {icon: 'diamond', title: 'Reward', desc: 'Earn loot and XP to upgrade your Warden.'},
+                                {icon: 'all_inclusive', title: 'Repeat', desc: 'Build your streak and conquer the Rift.'}
+                            ].map((item, idx) => (
+                                <div key={idx} className="flex flex-row md:flex-col gap-4 rounded-xl border border-border-dark bg-surface-dark p-4 items-center md:items-start group hover:border-primary/50 transition-colors">
+                                    <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/20 text-primary shrink-0">
+                                        <span className="material-symbols-outlined text-[28px]">{item.icon}</span>
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <h2 className="text-base font-bold leading-tight">{item.title}</h2>
+                                        <p className="text-text-secondary text-sm font-normal leading-normal">{item.desc}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="flex flex-col gap-4 w-full pb-8 pt-4 bg-background-light dark:bg-background-dark z-10">
+                        <div className="flex w-full flex-row items-center justify-center gap-2">
+                            <div className="h-1.5 w-1.5 rounded-full bg-border-dark"></div>
+                            <div className="h-1.5 w-1.5 rounded-full bg-border-dark"></div>
+                            <div className="h-1.5 w-6 rounded-full bg-primary"></div> 
+                            <div className="h-1.5 w-1.5 rounded-full bg-border-dark"></div>
+                        </div>
+                        <div className="flex px-4">
+                            <button onClick={() => navigate('/calibration')} className="flex min-w-[84px] w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl h-12 px-5 bg-primary hover:bg-primary/90 transition-colors text-white text-base font-bold leading-normal tracking-[0.015em] shadow-[0_0_20px_rgba(147,13,242,0.3)]">
+                                <span className="truncate">Enter the Rift</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Screen 10: Calibration
+        const CalibrationScreen = () => {
+            const navigate = useNavigate();
+            const [progress, setProgress] = useState(0);
+
+            useEffect(() => {
+                const interval = setInterval(() => {
+                    setProgress(prev => {
+                        if (prev >= 100) {
+                            clearInterval(interval);
+                            return 100;
+                        }
+                        return prev + 2;
+                    });
+                }, 50);
+                return () => clearInterval(interval);
+            }, []);
+
+            return (
+                <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden bg-background-light dark:bg-background-dark text-slate-900 dark:text-white">
+                    <header className="flex items-center justify-between p-4 pb-2 z-10">
+                        <button onClick={() => navigate(-1)} className="flex size-10 items-center justify-center rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors">
+                            <span className="material-symbols-outlined text-2xl">close</span>
+                        </button>
+                        <h2 className="text-lg font-bold leading-tight tracking-[-0.015em]">Calibration</h2>
+                        <div className="size-10"></div>
+                    </header>
+                    <main className="flex flex-1 flex-col items-center justify-start px-6 pt-4 pb-8 w-full max-w-md mx-auto">
+                        <div className="mb-6 w-full text-center">
+                            <h1 className="text-3xl font-bold leading-tight mb-2 tracking-tight">Prepare Your Gaze</h1>
+                            <p className="text-slate-500 dark:text-slate-400 text-base font-normal leading-normal">
+                                Center your face in the frame. Follow the purple light to unlock the dungeon.
+                            </p>
+                        </div>
+                        <div className="w-full relative aspect-[4/5] bg-black rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 mb-6">
+                            <div className="absolute inset-0 w-full h-full bg-cover bg-center opacity-60 mix-blend-overlay" style={{backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuCq6YiBatr4xZ6BEFkRy9LhYvU_t-LYWL8jNx3IEbX9oPVDTmtpFYC1Y3RCDGWJNQ3cTHRUr60luUpBe1OraNBX_UKArwqDNrG3APlffIwo08lGAUaCEBM_nFgapgt3fF8BTdUHzx1UtVURP_4vUHLBimrwT_N004qwlDUcNFL-_BmTYACdFvny5qqCFhSDgAqN4prcLJFU8dg3z-ms6XB_D_JHbJnE78hGc6XVerQroS8j3Z4eyQY0-HnCtarNwSEaSwgabGnFVHzD")'}}></div>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="w-64 h-80 rounded-[45%] border-2 border-white/20 shadow-inner-glow relative">
+                                    <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary rounded-tl-xl -mt-0.5 -ml-0.5"></div>
+                                    <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary rounded-tr-xl -mt-0.5 -mr-0.5"></div>
+                                    <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-xl -mb-0.5 -ml-0.5"></div>
+                                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-xl -mb-0.5 -mr-0.5"></div>
+                                </div>
+                            </div>
+                            <div className="absolute top-1/4 left-1/4 transform -translate-x-1/2 -translate-y-1/2">
+                                <div className="relative flex items-center justify-center">
+                                    <div className="w-8 h-8 bg-primary rounded-full shadow-glow animate-pulse z-20"></div>
+                                    <div className="absolute w-16 h-16 bg-primary/30 rounded-full animate-ping z-10"></div>
+                                </div>
+                            </div>
+                            <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+                                <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-primary text-sm animate-spin">sync</span>
+                                    <p className="text-white text-sm font-medium">{progress < 100 ? "Tracking face..." : "Face Locked"}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="w-full space-y-3 mb-8">
+                            <div className="flex items-end justify-between px-1">
+                                <span className="text-slate-900 dark:text-white font-medium">Calibration Progress</span>
+                                <span className="text-primary font-bold">{progress}%</span>
+                            </div>
+                            <div className="h-2 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                                <div className="h-full bg-primary rounded-full transition-all duration-500 ease-out shadow-[0_0_10px_#930df2]" style={{width: `${progress}%`}}></div>
+                            </div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 text-center pt-1">
+                                <span className="material-symbols-outlined align-middle text-sm mr-1">lightbulb</span>
+                                Keep your head steady for better accuracy.
+                            </p>
+                        </div>
+                        <div className="w-full mt-auto">
+                            <button 
+                                onClick={() => progress >= 100 && navigate('/dashboard')}
+                                disabled={progress < 100}
+                                className={`w-full font-bold text-lg py-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 group relative overflow-hidden ${progress >= 100 ? 'bg-primary text-white cursor-pointer' : 'bg-slate-800 text-slate-400 cursor-not-allowed'}`}
+                            >
+                                <span>Enter Book Dungeon</span>
+                                <span className={`material-symbols-outlined text-xl transition-transform ${progress >= 100 ? 'group-hover:translate-x-1' : ''}`}>{progress >= 100 ? 'lock_open' : 'lock'}</span>
+                            </button>
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
+        // Screen 2: Dashboard
+        const DashboardScreen = () => {
+            const navigate = useNavigate();
+            return (
+                <div className="relative flex h-full min-h-screen w-full flex-col max-w-md mx-auto shadow-2xl overflow-hidden bg-background-light dark:bg-background-dark pb-20">
+                    <header className="flex items-center p-5 pb-2 justify-between sticky top-0 z-40 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md">
+                        <div className="flex items-center gap-3">
+                            <div className="relative" onClick={() => navigate('/parent-report')}> {/* Added link to parent report */}
+                                <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-12 border-2 border-primary cursor-pointer" style={{backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBqpCkn5cbl_ZR1u6SecVO8UUxe_Q8WoxNGGrpC73ZEYy6ypdJgnvuQp3IDAKHaaMJNSXRuxPYynegMEo7GBIoHar_1qejoT6PNVKkxp5jNtearRFvOocoQqTst4a0ppsyC0t1BbuZVGwJnVd8eaH2Y9D3FXFs9toa9Y9CU3qgdmp98okvVF8yOFZVhNkLTDfC0cNPCFRU1EurtkFDoKKA89wRH-jqxMlW4z6r4_UNyY2KkNlBVmExkIaf4hwbGcJBknCqS96-edVYL")'}}></div>
+                                <div className="absolute -bottom-1 -right-1 bg-primary text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-background-dark text-white">Lvl 5</div>
+                            </div>
+                            <div className="flex flex-col">
+                                <h2 className="text-white text-base font-bold leading-tight tracking-tight">Warden Alex</h2>
+                                <div className="w-24 h-1.5 bg-surface-dark rounded-full mt-1 overflow-hidden">
+                                    <div className="h-full bg-gradient-to-r from-primary to-purple-400 w-[65%] rounded-full"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <button onClick={() => navigate('/inventory')} className="flex size-10 items-center justify-center rounded-full bg-surface-dark hover:bg-surface-darker text-white transition-colors border border-border-purple/30">
+                            <span className="material-symbols-outlined text-accent-purple" style={{fontSize: '24px'}}>notifications</span>
+                            <span className="absolute top-4 right-5 size-2 bg-red-500 rounded-full border border-background-dark"></span>
+                        </button>
+                    </header>
+                    <section className="px-5 py-4">
+                        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1 cursor-pointer" onClick={() => navigate('/inventory')}>
+                            <div className="flex-1 min-w-[100px] flex flex-col gap-1 rounded-xl bg-surface-dark border border-border-purple p-3 items-center text-center shadow-lg shadow-primary/5">
+                                <span className="material-symbols-outlined text-cyan-400 mb-1" style={{fontSize: '20px', fontVariationSettings: "'FILL' 1"}}>opacity</span>
+                                <p className="text-white text-xl font-bold leading-none">120</p>
+                                <p className="text-accent-purple text-xs font-medium uppercase tracking-wider">Ink</p>
+                            </div>
+                            <div className="flex-1 min-w-[100px] flex flex-col gap-1 rounded-xl bg-surface-dark border border-border-purple p-3 items-center text-center shadow-lg shadow-primary/5">
+                                <span className="material-symbols-outlined text-amber-400 mb-1" style={{fontSize: '20px', fontVariationSettings: "'FILL' 1"}}>diamond</span>
+                                <p className="text-white text-xl font-bold leading-none">300</p>
+                                <p className="text-accent-purple text-xs font-medium uppercase tracking-wider">Gems</p>
+                            </div>
+                            <div className="flex-1 min-w-[100px] flex flex-col gap-1 rounded-xl bg-surface-dark border border-border-purple p-3 items-center text-center shadow-lg shadow-primary/5">
+                                <span className="material-symbols-outlined text-emerald-400 mb-1" style={{fontSize: '20px', fontVariationSettings: "'FILL' 1"}}>change_history</span>
+                                <p className="text-white text-xl font-bold leading-none">5</p>
+                                <p className="text-accent-purple text-xs font-medium uppercase tracking-wider">Runes</p>
+                            </div>
+                        </div>
+                    </section>
+                    <section className="px-5 py-2">
+                        <div className="relative w-full rounded-2xl overflow-hidden shadow-2xl shadow-primary/20 group cursor-pointer" onClick={() => navigate('/library')}>
+                            <div className="absolute inset-0 bg-cover bg-center z-0 transition-transform duration-700 group-hover:scale-105" style={{backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuDIjZ50fAnRiG6r45pKz0eQu5arbrYtaJZXNoeWsTkuD3rdhjDPeaoezKIiumPqctW8a9M2TPksVvQUxMIcQ4yxS30Adpc8l_2C3n1weUDjvbLkmgot2lr3mZs4g7ib54AXXNlqwecvbYtI_Y3MVUSgKP0odR5juGs4pKooXyFeyF29paELo4J1tsVZ7wDBaC9wfLZojVnJm5pydyZgdPc57D3713EIAxZ2nQi9NiCuEs5Y6l7NlH1T62ymbkWn6wayYP-ohuuQNBEW")'}}></div>
+                            <div className="absolute inset-0 bg-gradient-to-t from-background-dark via-background-dark/80 to-transparent z-0"></div>
+                            <div className="relative z-10 p-6 flex flex-col min-h-[280px] justify-between">
+                                <div className="flex justify-between items-start">
+                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-red-500/20 border border-red-500/50 backdrop-blur-sm">
+                                        <span className="relative flex h-2 w-2">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                                        </span>
+                                        <span className="text-red-200 text-xs font-bold uppercase tracking-wide">Rift Open</span>
+                                    </div>
+                                    <div className="bg-black/40 backdrop-blur-md p-1.5 rounded-lg border border-white/10" title="Eye Tracking Enabled">
+                                        <span className="material-symbols-outlined text-accent-purple" style={{fontSize: '20px'}}>visibility</span>
+                                    </div>
+                                </div>
+                                <div className="space-y-3">
+                                    <h2 className="text-3xl font-bold text-white leading-tight drop-shadow-lg">Daily Dungeon</h2>
+                                    <p className="text-gray-300 text-sm leading-relaxed max-w-[80%]">The Rift is unstable. Read carefully to seal the breach and earn double XP today.</p>
+                                    <button className="w-full mt-2 bg-primary hover:bg-primary-hover active:scale-95 transition-all text-white font-bold py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-primary/30 group-hover:shadow-primary/50">
+                                        <span className="material-symbols-outlined">auto_stories</span>
+                                        <span>Enter Dungeon</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    <section className="px-5 py-4">
+                        <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-white text-lg font-bold">Your Streak</h3>
+                            <span className="text-primary text-sm font-semibold flex items-center gap-1" onClick={() => navigate('/progress')}>
+                                View All <span className="material-symbols-outlined text-sm">chevron_right</span>
+                            </span>
+                        </div>
+                        <div className="bg-surface-dark rounded-xl border border-border-purple/50 p-4">
+                            <div className="flex justify-between items-center mb-4">
+                                <div className="flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-orange-500" style={{fontVariationSettings: "'FILL' 1"}}>local_fire_department</span>
+                                    <span className="text-white font-bold text-xl">5 Days</span>
+                                </div>
+                                <span className="text-gray-400 text-xs">Keep the rift closed!</span>
+                            </div>
+                            <div className="flex justify-between gap-2">
+                                {/* Week Days Simulation */}
+                                {['M','T','W','T'].map((d, i) => (
+                                    <div key={i} className="flex flex-col items-center gap-2">
+                                        <div className="size-8 rounded-full bg-primary/20 flex items-center justify-center border border-primary text-primary">
+                                            <span className="material-symbols-outlined text-sm">check</span>
+                                        </div>
+                                        <span className="text-[10px] text-gray-400 font-medium">{d}</span>
+                                    </div>
+                                ))}
+                                <div className="flex flex-col items-center gap-2">
+                                    <div className="size-8 rounded-full bg-white text-primary flex items-center justify-center shadow-lg shadow-white/20 animate-pulse">
+                                        <span className="text-xs font-black">5</span>
+                                    </div>
+                                    <span className="text-[10px] text-white font-bold">F</span>
+                                </div>
+                                {['S','S'].map((d, i) => (
+                                    <div key={i} className="flex flex-col items-center gap-2 opacity-40">
+                                        <div className="size-8 rounded-full bg-surface-darker border border-gray-600 flex items-center justify-center">
+                                            <span className="text-[10px] text-gray-500">{6+i}</span>
+                                        </div>
+                                        <span className="text-[10px] text-gray-500 font-medium">{d}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </section>
+                    <section className="px-5 py-2 mb-6">
+                        <h3 className="text-white text-lg font-bold mb-3">Active Quests</h3>
+                        <div className="flex flex-col gap-3">
+                            <div onClick={() => navigate('/library')} className="flex items-center p-3 bg-surface-dark rounded-xl border border-border-purple/30 hover:bg-surface-darker transition-colors cursor-pointer">
+                                <div className="size-12 rounded-lg bg-cover bg-center shrink-0 mr-4 border border-white/10" style={{backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuC5UY_j6EY9WRXE-R2mL9qdaoCC5W3RI1OSm5o-PIRJfiBruwXBZnyxp2LT0kAW5SavYxgZA6G_oSykd4Zmvw4ip7TZxiUHtuxhn-7yXyOyVGlQZqcW9snlBiMMYSMxzhTvzkU5XPwLCHmOpzQX3J4gtWr82NolXMWAvV-Wn2x3r-2ZdiJxxzOF1yhyDkteyNZjEIMQo7DAC1qq_y_4j1DioZUTjZUQnAm4SdM0J7vrfqI0nyE36K6FbhM4q5m2UGFMpFawRJ5a2r6z")'}}></div>
+                                <div className="flex-1 min-w-0">
+                                    <h4 class="text-white font-semibold truncate">The Lost Chapter</h4>
+                                    <p className="text-accent-purple text-xs mt-1">Read 15 minutes • 50/100 XP</p>
+                                    <div className="w-full h-1 bg-background-dark rounded-full mt-2 overflow-hidden">
+                                        <div className="h-full bg-primary w-1/2 rounded-full"></div>
+                                    </div>
+                                </div>
+                                <button className="ml-2 size-8 flex items-center justify-center rounded-full bg-background-dark text-gray-400 hover:text-white transition-colors">
+                                    <span className="material-symbols-outlined text-xl">play_arrow</span>
+                                </button>
+                            </div>
+                            <div className="flex items-center p-3 bg-surface-dark rounded-xl border border-border-purple/30 hover:bg-surface-darker transition-colors cursor-pointer opacity-70">
+                                <div className="size-12 rounded-lg bg-cover bg-center shrink-0 mr-4 border border-white/10 grayscale" style={{backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuAvsNL_KwmAb4ARaP1XKeHhBusuDY-CjWcjn2bcndL03OqwqJsssqLbMnuwdT6rR6tyMfWDDnzfUvjTrrj66zoq_eldX054Qe9MpXjwpKEcGtOYbISJnF2p1MlkPNheKjSpPIJwDlf4lg3H_Ypej6Dy5FqRU8oBZbS10xaeXkb1Wz9KP4c7Igm5gja97QXOo4PHJ1XVwPUZcPZUcc9LvsCmKBnDxmdEAGr8tAkF2JtBpgEQYftWyAT4rHrVGdWjZstaSCYuZOseyGDE")'}}></div>
+                                <div className="flex-1 min-w-0">
+                                    <h4 className="text-white font-semibold truncate">Vocabulary Hunt</h4>
+                                    <p className="text-gray-400 text-xs mt-1">Find 5 new words</p>
+                                    <div className="w-full h-1 bg-background-dark rounded-full mt-2 overflow-hidden">
+                                        <div className="h-full bg-gray-500 w-1/5 rounded-full"></div>
+                                    </div>
+                                </div>
+                                <button className="ml-2 size-8 flex items-center justify-center rounded-full bg-background-dark text-gray-400">
+                                    <span className="material-symbols-outlined text-xl">lock</span>
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+                    <BottomNav active="home" />
+                </div>
+            );
+        };
+
+        // Screen 3: Library (Daily Dungeon)
+        const LibraryScreen = () => {
+            const navigate = useNavigate();
+            return (
+                <div className="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white antialiased overflow-x-hidden pb-24 min-h-screen">
+                    <header className="sticky top-0 z-40 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm border-b border-surface-light/20 dark:border-surface-light p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="relative">
+                                <div className="size-10 rounded-full bg-cover bg-center border-2 border-primary" style={{backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuB2jwjuK0OI-Ahe5H4SchV3B3ehMzqBPl57tJov4Dbn-n6N3oarbykOv51ncV8ObOYUm1LN8gaU0EKZxQTDHIKJyKztqsksDDISi-fxxr4OTEqSvOeMwHB_x-0A9lQ4aZ9UjEMc8u2p7Oz-NZLToB5mRDKL2TrD__vT4kjyEINEXlv_PGQE-l9k20SUoMFJofgutbeqxmpWBeGgxHya2L6ntCuuysc2TSPNUcXbh0zippG9AWd0P9Or2fMlYhC7hD9zI_HG_q_7TXAp")'}}></div>
+                                <div className="absolute -bottom-1 -right-1 bg-primary text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-background-dark">Lvl 5</div>
+                            </div>
+                            <div>
+                                <h2 className="text-base font-bold leading-tight">Novice Warden</h2>
+                                <p className="text-accent-purple text-xs">Apprentice Rank</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 bg-surface-light/50 px-3 py-1.5 rounded-full border border-primary/20">
+                            <span className="text-lg">🔥</span>
+                            <p className="text-primary font-bold text-sm">12 Days</p>
+                        </div>
+                    </header>
+                    <section className="relative px-4 pt-6 pb-2">
+                        <div className="flex items-end justify-between mb-2">
+                            <h1 className="text-2xl font-bold tracking-tight text-white">Daily Rift Forecast</h1>
+                            <span className="material-symbols-outlined text-primary animate-pulse">emergency_home</span>
+                        </div>
+                        <p className="text-accent-purple text-sm font-normal leading-relaxed max-w-[90%]">
+                            The breach is widening. Complete your reading to stabilize the rifts before they close.
+                        </p>
+                    </section>
+                    <section className="px-4 py-6">
+                        <div className="flex gap-3">
+                            {/* Simple Timer Visual */}
+                            <div className="flex grow basis-0 flex-col items-center gap-2">
+                                <div className="flex w-full h-16 items-center justify-center rounded-xl bg-surface-light border border-white/5 shadow-inner"><p className="text-white text-2xl font-bold font-mono tracking-tight">14</p></div>
+                                <p className="text-accent-purple text-xs uppercase tracking-wider font-medium">Hours</p>
+                            </div>
+                            <div className="flex flex-col justify-start pt-4"><span className="text-accent-purple font-bold text-xl">:</span></div>
+                            <div className="flex grow basis-0 flex-col items-center gap-2">
+                                <div className="flex w-full h-16 items-center justify-center rounded-xl bg-surface-light border border-white/5 shadow-inner"><p className="text-white text-2xl font-bold font-mono tracking-tight">30</p></div>
+                                <p className="text-accent-purple text-xs uppercase tracking-wider font-medium">Mins</p>
+                            </div>
+                            <div className="flex flex-col justify-start pt-4"><span className="text-accent-purple font-bold text-xl">:</span></div>
+                            <div className="flex grow basis-0 flex-col items-center gap-2">
+                                <div className="flex w-full h-16 items-center justify-center rounded-xl bg-surface-light border border-white/5 shadow-inner"><p className="text-primary text-2xl font-bold font-mono tracking-tight">45</p></div>
+                                <p className="text-accent-purple text-xs uppercase tracking-wider font-medium">Secs</p>
+                            </div>
+                        </div>
+                    </section>
+                    <section className="flex flex-col gap-4 px-4 pb-4">
+                        <div className="flex items-center justify-between mt-2 mb-1">
+                            <h3 className="text-lg font-bold text-white">Active Rifts</h3>
+                            <button className="text-xs text-primary font-medium flex items-center gap-1">
+                                View All <span className="material-symbols-outlined text-sm">chevron_right</span>
+                            </button>
+                        </div>
+                        {/* Active Rift Card */}
+                        <div onClick={() => navigate('/reading')} className="relative group overflow-hidden rounded-xl bg-surface-dark border border-primary shadow-[0_0_15px_rgba(147,13,242,0.15)] transition-all active:scale-[0.98] cursor-pointer">
+                            <div className="absolute top-0 right-0 bg-primary text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl z-10">RECOMMENDED</div>
+                            <div className="flex p-3 gap-4">
+                                <div className="w-24 shrink-0 aspect-[2/3] rounded-lg bg-cover bg-center shadow-lg relative" style={{backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuD78YKmY15xSbd5hbYWLAFNwv4GY0VSCMsiY04ygp1LPCfkGWiN2UDz75ZsZOIuYpMtbXvTvxxIKBiPDPqBlVCaEnTtt_7SCSI7dV9KhIFEssN_faQrTMv9L7NjABlJY5_0w1SE9Ok4knL764QnO4_6hXLg8gAcbxXeFOrziKefUyllzyZBh3QCa72l-wIjjPV8DBWkYuFfQz2M4ZMTmvkWWvQq9WiELwLAMAqGGqXfHXhtW9RaveZg8B8zhcYqQabygHJh11uzDfAo")'}}>
+                                    <div className="absolute inset-0 border border-white/10 rounded-lg"></div>
+                                </div>
+                                <div className="flex flex-col justify-between flex-1 py-1">
+                                    <div>
+                                        <div className="flex items-center gap-1.5 mb-1">
+                                            <span className="material-symbols-outlined text-primary text-sm">auto_stories</span>
+                                            <span className="text-primary text-xs font-bold uppercase tracking-wider">Open Rift</span>
+                                        </div>
+                                        <h4 className="text-white text-lg font-bold leading-tight mb-1 line-clamp-1">The Hobbit</h4>
+                                        <p className="text-accent-purple text-xs font-normal mb-3 line-clamp-1">Chapter 4: Over Hill and Under Hill</p>
+                                        <div className="flex items-center gap-3 text-xs text-accent-purple">
+                                            <div className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">skull</span><span>Diff: 3</span></div>
+                                            <div className="w-1 h-1 rounded-full bg-surface-light"></div>
+                                            <div className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">schedule</span><span>30m</span></div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-end justify-between mt-3">
+                                        <div className="flex items-center gap-1 text-yellow-400 text-xs font-bold bg-yellow-400/10 px-2 py-1 rounded">
+                                            <span className="material-symbols-outlined text-[14px] filled">bolt</span>+50 XP
+                                        </div>
+                                        <button className="bg-primary hover:bg-primary/90 text-white text-xs font-bold py-2 px-4 rounded-lg flex items-center gap-2 shadow-lg shadow-primary/20">
+                                            Enter Rift
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {/* Secondary Card */}
+                         <div className="relative group overflow-hidden rounded-xl bg-surface-dark border border-surface-light transition-all active:scale-[0.98]">
+                            <div className="flex p-3 gap-4">
+                                <div className="w-24 shrink-0 aspect-[2/3] rounded-lg bg-cover bg-center shadow-lg relative grayscale-[30%]" style={{backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuCJQWlOAKPilUjD6OLopRKox3Gl4aLJNPdgxoukTlwtPgDKFGcidKYLJVQpf2o-VcrcMhijqRRXASfXG0n3XKpTXVkfOp_go-WfSABSRCrVaYzcCJsvS6akad8jvdGJeyiKeCZueKHs2I0J8Vs583DeatMU3BUYAiEd7xk4wx9302MDMbz2ij-7UoOLK8JpJyOpvnDkYSU9P0ASUgBmq5nMSM0NSzfHBjvdZ75xXAmclBAFsR3H7Znp0xab8O5ikZr4cEzdlYRv3Txw")'}}></div>
+                                <div className="flex flex-col justify-between flex-1 py-1">
+                                    <div>
+                                        <div className="flex items-center gap-1.5 mb-1"><span className="text-accent-purple text-xs font-bold uppercase tracking-wider">Side Quest</span></div>
+                                        <h4 className="text-white/90 text-lg font-bold leading-tight mb-1 line-clamp-1">Percy Jackson</h4>
+                                        <p className="text-accent-purple/80 text-xs font-normal mb-3 line-clamp-1">The Lightning Thief</p>
+                                    </div>
+                                    <div className="flex items-end justify-between mt-3">
+                                        <div className="flex items-center gap-1 text-yellow-400/80 text-xs font-bold bg-yellow-400/5 px-2 py-1 rounded"><span className="material-symbols-outlined text-[14px] filled">bolt</span>+25 XP</div>
+                                        <button className="bg-surface-light hover:bg-surface-light/80 text-white text-xs font-medium py-2 px-4 rounded-lg">Continue</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    <BottomNav active="library" />
+                </div>
+            );
+        };
+
+        // Screen 4: Reading Interface
+        const ReadingScreen = () => {
+            const navigate = useNavigate();
+            return (
+                <div className="bg-background-light dark:bg-background-dark font-display h-screen flex flex-col overflow-hidden text-slate-900 dark:text-white antialiased selection:bg-primary selection:text-white">
+                    <header className="flex items-center justify-between p-4 pb-2 z-10 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm sticky top-0">
+                        <div className="flex flex-col">
+                            <span className="text-xs uppercase tracking-widest text-primary font-bold mb-1">Dungeon Level 5</span>
+                            <h2 className="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-tight line-clamp-1">Chapter 4: The Whispering Library</h2>
+                        </div>
+                        <button onClick={() => navigate(-1)} className="flex items-center justify-center h-10 w-10 rounded-full hover:bg-slate-200 dark:hover:bg-surface-dark transition-colors">
+                            <span className="material-symbols-outlined text-slate-600 dark:text-slate-300">close</span>
+                        </button>
+                    </header>
+                    <div className="px-4 py-2 flex items-center justify-between z-10">
+                        <div className="flex items-center gap-x-2 rounded-full bg-primary/10 dark:bg-surface-dark border border-primary/20 pl-2 pr-3 py-1">
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                            </span>
+                            <div className="flex items-center gap-1">
+                                <span className="material-symbols-outlined text-primary text-[16px]">visibility</span>
+                                <p className="text-primary text-xs font-medium">Tracking Active</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <span className="material-symbols-outlined text-yellow-500 text-[18px]">bolt</span>
+                            <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Streak: 12 days</span>
+                        </div>
+                    </div>
+                    <main className="flex-1 overflow-y-auto no-scrollbar relative px-5 py-2">
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-slate-200 dark:bg-surface-dark">
+                            <div className="h-[45%] w-full bg-gradient-to-b from-primary to-purple-400 rounded-b-full shadow-[0_0_10px_rgba(147,13,242,0.5)]"></div>
+                        </div>
+                        <div className="pl-3 pb-24 max-w-2xl mx-auto space-y-6">
+                            <p className="text-slate-500 dark:text-slate-500 text-lg leading-relaxed transition-colors duration-500">
+                                The warden stepped carefully over the ancient stones. Shadows danced along the walls as the torch flickered in the damp draft. The smell of old parchment and decay was thick in the air.
+                            </p>
+                            <div className="relative py-2">
+                                <div className="absolute -left-5 top-3 bottom-3 w-1 bg-primary rounded-full shadow-[0_0_8px_#930df2]"></div>
+                                <p className="text-slate-900 dark:text-white text-xl font-medium leading-relaxed transition-all duration-300">
+                                    The air hummed with a strange energy, a low vibration that seemed to seep into his very bones.
+                                    <span className="bg-primary/20 text-slate-900 dark:text-white rounded px-1 py-0.5 box-decoration-clone glow-text"> He knew the Rift was close.</span>
+                                    The compass in his pocket was spinning wildly, no longer pointing north, but towards the darkness ahead.
+                                </p>
+                            </div>
+                            <p className="text-slate-400 dark:text-slate-600 text-lg leading-relaxed blur-[0.5px] transition-all duration-500">
+                                "Keep close," he whispered to his companion, though he wasn't sure if the silence of the library would swallow his words entirely. Books, larger than men, lined the shelves that stretched up into an infinite void.
+                            </p>
+                            <div className="my-8 p-4 rounded-xl bg-primary/5 border border-primary/20 flex flex-col items-center justify-center gap-3">
+                                <span className="material-symbols-outlined text-primary text-3xl">psychology</span>
+                                <p className="text-sm text-center text-slate-600 dark:text-slate-300 font-medium">Comprehension Checkpoint Reached</p>
+                                <button onClick={() => navigate('/battle')} className="bg-primary hover:bg-purple-700 text-white text-sm font-bold py-2 px-6 rounded-lg transition-colors shadow-lg shadow-primary/20">
+                                    Unlock Next Section
+                                </button>
+                            </div>
+                            <p className="text-slate-400 dark:text-slate-600 text-lg leading-relaxed blur-[1px]">
+                                He drew his sword, the metal singing as it left the scabbard. The light from his torch reflected off the blade, revealing runes that began to glow with a soft purple hue.
+                            </p>
+                        </div>
+                    </main>
+                    <div className="absolute bottom-[88px] left-0 w-full px-4 z-20 pointer-events-none">
+                        <div className="bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md rounded-xl p-3 border border-slate-200 dark:border-surface-dark shadow-xl flex items-center gap-3 pointer-events-auto transform translate-y-2">
+                            <div className="h-10 w-10 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
+                                <span className="material-symbols-outlined text-primary">auto_stories</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex justify-between items-center mb-1">
+                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">XP Progress</span>
+                                    <span className="text-xs font-bold text-primary">+450 XP</span>
+                                </div>
+                                <div className="h-2 w-full bg-slate-200 dark:bg-surface-dark rounded-full overflow-hidden">
+                                    <div className="h-full bg-primary w-[65%] rounded-full relative overflow-hidden">
+                                        <div className="absolute top-0 left-0 bottom-0 right-0 bg-white/20 animate-[shimmer_2s_infinite]"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {/* Custom Bottom Nav for Reading */}
+                    <nav className="h-[80px] bg-background-light dark:bg-background-dark border-t border-slate-200 dark:border-surface-dark flex items-center justify-around px-2 z-30 pb-4">
+                        <button onClick={() => navigate('/dashboard')} className="flex flex-col items-center justify-center w-16 gap-1 group">
+                            <span className="material-symbols-outlined text-slate-400 text-[24px]">home</span>
+                            <span className="text-[10px] font-medium text-slate-400">Home</span>
+                        </button>
+                        <button onClick={() => navigate('/library')} className="flex flex-col items-center justify-center w-16 gap-1 group">
+                             <span className="material-symbols-outlined text-slate-400 text-[24px]">local_library</span>
+                            <span className="text-[10px] font-medium text-slate-400">Library</span>
+                        </button>
+                        <button className="flex flex-col items-center justify-center w-16 gap-1 -mt-6">
+                            <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center shadow-[0_4px_14px_rgba(147,13,242,0.4)] ring-4 ring-background-light dark:ring-background-dark">
+                                <span className="material-symbols-outlined text-white fill-1 text-[24px]">menu_book</span>
+                            </div>
+                            <span className="text-[10px] font-bold text-primary">Read</span>
+                        </button>
+                         <button onClick={() => navigate('/progress')} className="flex flex-col items-center justify-center w-16 gap-1 group">
+                             <span className="material-symbols-outlined text-slate-400 text-[24px]">monitoring</span>
+                            <span className="text-[10px] font-medium text-slate-400">Progress</span>
+                        </button>
+                        <button onClick={() => navigate('/profile')} className="flex flex-col items-center justify-center w-16 gap-1 group">
+                            <span className="material-symbols-outlined text-slate-400 text-[24px]">person</span>
+                            <span className="text-[10px] font-medium text-slate-400">Profile</span>
+                        </button>
+                    </nav>
+                </div>
+            );
+        };
+
+        // Screen 5: AI Villain Battle
+        const BattleScreen = () => {
+            const navigate = useNavigate();
+            return (
+                <div className="bg-background-light dark:bg-background-dark font-display text-gray-900 dark:text-white overflow-hidden h-screen w-full flex flex-col">
+                    <header className="flex items-center justify-between p-4 bg-background-light dark:bg-background-dark z-10 shrink-0">
+                        <button onClick={() => navigate(-1)} className="flex items-center justify-center size-10 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors">
+                            <span className="material-symbols-outlined">arrow_back</span>
+                        </button>
+                        <div className="flex flex-col items-center">
+                            <h2 className="text-sm font-medium text-primary uppercase tracking-wider">Level 5</h2>
+                            <h1 className="text-lg font-bold leading-tight">The Syntax Specter</h1>
+                        </div>
+                        <button className="flex items-center justify-center size-10 rounded-full hover:bg-black/10 dark:hover:bg-white/10 text-primary transition-colors">
+                            <span className="material-symbols-outlined">pause</span>
+                        </button>
+                    </header>
+                    <main className="flex-1 overflow-y-auto flex flex-col w-full pb-24 relative">
+                        <div className="px-4 pb-2 w-full">
+                            <div className="flex justify-between items-end mb-1">
+                                <span className="text-xs text-gray-500 dark:text-[#b290cb] font-medium uppercase tracking-wide">Battle Timer</span>
+                                <span className="text-xs font-bold text-primary">00:45</span>
+                            </div>
+                            <div className="h-1.5 w-full bg-gray-200 dark:bg-[#513168] rounded-full overflow-hidden">
+                                <div className="h-full bg-primary rounded-full" style={{width: '65%'}}></div>
+                            </div>
+                        </div>
+                        <div className="px-4 py-2 shrink-0">
+                            <div className="relative w-full aspect-[16/9] rounded-2xl overflow-hidden shadow-lg border border-white/5 bg-surface-dark group">
+                                <div className="absolute inset-0 bg-cover bg-center" style={{backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuBMynSLvXsJslz6_6Aiqst3nVlHb04YN4hSwxsRcA0whn8nSG5_wR4fDaabKF8JT8UCNqHMsSVPiIaTmVL10pYpKIB6SUuZgMd_Ry6xL2ekB4iZVFW5o1k9n1pIwLgYf_NJB5uvFe8LdQqTdMun_bQP1wnrGSdt6AZwUP599a6FncRF6Jq8XFQys9-OiCtJhwQ_3IbotnZBaqciS2GBM6JW3DO5H8rAIhH2qTOib6lFzt1zjpjZYi7nr4NFj_blhlsQZ3bBjQdnl_3m')"}}></div>
+                                <div className="absolute inset-0 bg-gradient-to-t from-background-dark via-transparent to-transparent opacity-90"></div>
+                                <div className="absolute top-4 right-4 animate-pulse">
+                                    <span className="material-symbols-outlined text-primary text-3xl drop-shadow-[0_0_8px_rgba(147,13,242,0.8)]">bolt</span>
+                                </div>
+                                <div className="absolute bottom-4 left-4 right-4">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <span className="text-white font-bold text-lg drop-shadow-md">The Syntax Specter</span>
+                                        <span className="text-xs bg-red-500/20 text-red-300 border border-red-500/30 px-2 py-0.5 rounded text-center backdrop-blur-sm">Boss Level</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 px-4 py-2 shrink-0">
+                            <div className="bg-surface-dark p-3 rounded-xl border border-white/5 flex flex-col gap-1">
+                                <div className="flex justify-between items-center"><span className="text-xs text-[#b290cb]">Player HP</span><span className="material-symbols-outlined text-green-400 text-sm">favorite</span></div>
+                                <div className="flex items-end gap-1"><span className="text-xl font-bold text-white">100</span><span className="text-xs text-gray-400 mb-1">/100</span></div>
+                                <div className="h-1 w-full bg-[#513168] rounded-full mt-1 overflow-hidden"><div className="h-full bg-green-500 w-full rounded-full"></div></div>
+                            </div>
+                            <div className="bg-surface-dark p-3 rounded-xl border border-white/5 flex flex-col gap-1 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-3 opacity-10"><span className="material-symbols-outlined text-white text-4xl">smart_toy</span></div>
+                                <div className="flex justify-between items-center z-10"><span className="text-xs text-[#b290cb]">Villain HP</span><span className="material-symbols-outlined text-red-400 text-sm">swords</span></div>
+                                <div className="flex items-end gap-1 z-10"><span className="text-xl font-bold text-white">500</span><span className="text-xs text-gray-400 mb-1">/500</span></div>
+                                <div className="h-1 w-full bg-[#513168] rounded-full mt-1 overflow-hidden z-10"><div className="h-full bg-red-500 w-full rounded-full"></div></div>
+                            </div>
+                        </div>
+                        <div className="flex-1 px-4 pt-4 pb-2">
+                            <div className="bg-surface-dark rounded-t-3xl h-full p-6 shadow-[0_-4px_30px_rgba(0,0,0,0.3)] border-t border-white/5 relative flex flex-col">
+                                <div className="absolute top-4 right-6 flex items-center gap-1.5 opacity-60">
+                                    <div className="size-2 bg-primary rounded-full animate-pulse"></div>
+                                    <span className="material-symbols-outlined text-[#b290cb] text-lg">visibility</span>
+                                </div>
+                                <div className="mb-6 mt-2">
+                                    <span className="text-primary text-xs font-bold uppercase tracking-wider mb-2 block">Comprehension Check</span>
+                                    <h3 className="text-xl md:text-2xl font-bold leading-snug text-white">According to the passage, why did the protagonist hide the key?</h3>
+                                </div>
+                                <div className="space-y-3 flex-1">
+                                    {['A', 'B', 'C'].map((opt, idx) => (
+                                        <button key={idx} onClick={() => alert("Correct! You damaged the Villain.")} className="w-full text-left p-4 rounded-xl bg-background-dark hover:bg-surface-light border border-white/5 hover:border-primary/50 transition-all duration-200 group flex items-start gap-3 active:scale-[0.98]">
+                                            <div className="shrink-0 size-6 rounded-full border border-gray-600 group-hover:border-primary flex items-center justify-center text-xs font-bold text-gray-400 group-hover:text-primary mt-0.5">{opt}</div>
+                                            <span className="text-gray-200 group-hover:text-white text-base">{idx === 0 ? "To protect the village from the approaching storm." : idx === 1 ? "She was afraid of the dark forest." : "The map explicitly told her to do so."}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+                    <BottomNav active="progress" />
+                </div>
+            );
+        };
+
+        // Screen 6: Inventory
+        const InventoryScreen = () => {
+            const navigate = useNavigate();
+            return (
+                <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden pb-24 bg-background-light dark:bg-background-dark">
+                    <header className="sticky top-0 z-10 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-primary/10 px-4 pt-12 pb-4">
+                        <div className="flex items-center justify-between">
+                            <button onClick={() => navigate(-1)} className="flex size-10 items-center justify-center rounded-full text-slate-900 dark:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+                                <span className="material-symbols-outlined text-2xl">arrow_back</span>
+                            </button>
+                            <h1 className="text-xl font-bold tracking-tight">Inventory</h1>
+                            <button className="flex size-10 items-center justify-center rounded-full text-slate-900 dark:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+                                <span className="material-symbols-outlined text-2xl">more_vert</span>
+                            </button>
+                        </div>
+                        <p className="mt-2 text-center text-sm font-normal text-slate-500 dark:text-slate-400">Your magical resources & currencies</p>
+                    </header>
+                    <section className="px-4 py-6">
+                        <div className="flex gap-4">
+                            <div className="flex flex-1 flex-col items-center justify-center gap-1 rounded-xl border border-primary/20 bg-surface-dark/50 dark:bg-surface-dark p-4 shadow-sm backdrop-blur-sm">
+                                <div className="flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-primary text-sm">inventory_2</span>
+                                    <span className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Items</span>
+                                </div>
+                                <p className="text-2xl font-bold text-white">1,604</p>
+                            </div>
+                            <div className="flex flex-1 flex-col items-center justify-center gap-1 rounded-xl border border-primary/20 bg-surface-dark/50 dark:bg-surface-dark p-4 shadow-sm backdrop-blur-sm">
+                                <div className="flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-primary text-sm">verified</span>
+                                    <span className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">Warden Level</span>
+                                </div>
+                                <p className="text-2xl font-bold text-white">Lvl 12</p>
+                            </div>
+                        </div>
+                    </section>
+                    <main className="flex flex-col gap-5 px-4">
+                        {/* Ink Card */}
+                        <div className="group relative overflow-hidden rounded-xl bg-white dark:bg-surface-dark shadow-md transition-all hover:shadow-lg hover:shadow-primary/10 border border-transparent dark:border-white/5">
+                            <div className="flex flex-col sm:flex-row">
+                                <div className="h-40 w-full sm:h-auto sm:w-1/3 bg-slate-800 relative overflow-hidden">
+                                    <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110" style={{backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuBZpIxHCUB0B5Cf2S3GZUgmM046Hyxjzvj97cSjQcyQyxMQsMM34GDP6rv7Aj45hlSX_tN0giB0uDaem0PFIAFrkzqBQMRkfzScPrj359PcMUrApbZwHTY0bEmw11tlNbikqJCdjuWsvx49n_cBpv_sUuvXh93vcX-7hOUfdid-_ChMhBUxJCkvBazd33fnjCxfQ5pACmWJnalJWmIOUd7_7YO46WxZLrD49zBpF2YSMWZddrtrCnfXvXj1SJgBgtnwXIp4GcB_cfHs')"}}></div>
+                                    <div className="absolute bottom-3 left-3 flex items-center gap-1 rounded-full bg-black/40 px-2 py-1 text-xs text-white backdrop-blur-md">
+                                        <span className="material-symbols-outlined text-[16px]">water_drop</span><span>Common</span>
+                                    </div>
+                                </div>
+                                <div className="flex flex-1 flex-col justify-between p-5">
+                                    <div>
+                                        <div className="flex items-center justify-between"><h3 className="text-lg font-bold text-slate-900 dark:text-white">Magical Ink</h3><span className="rounded-lg bg-primary/20 px-2 py-1 text-xs font-semibold text-primary">Resource</span></div>
+                                        <div className="mt-1 flex items-baseline gap-1"><span className="text-2xl font-bold text-primary">1,240</span><span className="text-sm font-medium text-slate-500 dark:text-slate-400">ml</span></div>
+                                        <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-slate-300">Essential for writing spells. Earned by tracking reading time.</p>
+                                    </div>
+                                    <div className="mt-5 flex items-center justify-end">
+                                        <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-all hover:bg-primary-dark shadow-[0_0_15px_rgba(147,13,242,0.3)]"><span className="material-symbols-outlined text-[18px]">add</span>Get More</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {/* Rune Card */}
+                        <div className="group relative overflow-hidden rounded-xl bg-white dark:bg-surface-dark shadow-md transition-all hover:shadow-lg hover:shadow-primary/10 border border-transparent dark:border-white/5">
+                            <div className="flex flex-col sm:flex-row">
+                                <div className="h-40 w-full sm:h-auto sm:w-1/3 bg-slate-800 relative overflow-hidden">
+                                    <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110" style={{backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuAdOb9gpUVrDtUoYSBNRdOPz_6bmv0Gw_QpXFSD92lUZtSw0fsBN3BH3TzzMPBmEL0KVf3-ggRR7dtegmqXUNacd1uRz17NP3qO6sfMnTorr0iFjJFqWKzPcENbEORPRI8db1QcFIm-kXsNQ2NoZDVBn9KGfQcOTb15IFVkDFIxgTpVeYojsXq0wB8gGYYv3Idz8q2Np7DEIgfY15nYru1JI_FFRooWJHiCxinb4PnqhbqP6i8uY2gZxo3_7thzQZn_zzhz0feXxWyD')"}}></div>
+                                    <div className="absolute bottom-3 left-3 flex items-center gap-1 rounded-full bg-black/40 px-2 py-1 text-xs text-white backdrop-blur-md">
+                                        <span className="material-symbols-outlined text-[16px]">change_history</span><span>Rare</span>
+                                    </div>
+                                </div>
+                                <div className="flex flex-1 flex-col justify-between p-5">
+                                    <div>
+                                        <div className="flex items-center justify-between"><h3 className="text-lg font-bold text-slate-900 dark:text-white">Ancient Runes</h3><span className="rounded-lg bg-primary/20 px-2 py-1 text-xs font-semibold text-primary">Key Item</span></div>
+                                        <div className="mt-1 flex items-baseline gap-1"><span className="text-2xl font-bold text-primary">14</span><span className="text-sm font-medium text-slate-500 dark:text-slate-400">Runes</span></div>
+                                        <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-slate-300">Powerful stones that unlock new Book Dungeons.</p>
+                                    </div>
+                                    <div className="mt-5 flex items-center justify-end">
+                                        <button className="flex items-center gap-2 rounded-lg border border-primary/50 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-primary/10"><span>Use</span><span className="material-symbols-outlined text-[18px]">arrow_forward</span></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+                    <BottomNav active="profile" />
+                </div>
+            );
+        };
+
+        // Screen 7: Progress/AI Coach
+        const ProgressScreen = () => {
+            const navigate = useNavigate();
+            return (
+                <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden pb-24 bg-background-light dark:bg-background-dark">
+                     <header className="sticky top-0 z-10 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-primary/10 px-4 pt-12 pb-4">
+                        <div className="flex items-center justify-between">
+                            <button onClick={() => navigate(-1)} className="flex size-10 items-center justify-center rounded-full text-slate-900 dark:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+                                <span className="material-symbols-outlined text-2xl">arrow_back</span>
+                            </button>
+                            <h1 className="text-xl font-bold tracking-tight">AI Reading Coach</h1>
+                            <button className="flex size-10 items-center justify-center rounded-full text-slate-900 dark:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+                                <span className="material-symbols-outlined text-2xl">settings</span>
+                            </button>
+                        </div>
+                        <div className="mt-2 flex items-center justify-center gap-2 text-sm font-normal text-slate-500 dark:text-slate-400">
+                            <span className="material-symbols-outlined text-base text-primary">calendar_today</span>
+                            <span>Today's Analysis</span>
+                        </div>
+                    </header>
+                    <main className="flex flex-col gap-6 px-4 pt-4">
+                        <section className="flex flex-col items-center justify-center">
+                            <div className="relative group cursor-pointer" onClick={() => navigate('/parent-report')}>
+                                <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-primary via-purple-500 to-blue-500 opacity-60 blur-lg animate-pulse transition-opacity duration-1000 group-hover:opacity-80"></div>
+                                <img alt="AI Coach Avatar" className="relative size-28 rounded-full border-2 border-surface-light dark:border-surface-dark object-cover shadow-2xl bg-surface-dark" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDlWstShM2mCI5ePTWEOHUzDvegKnbW00KaQbbL50E7_BYy5tVr98ZRCravu0uGITFRTSILCuFKa_9SbUkQnMWmBZNwDiE-B_nZ43lMS4-1yjkCTRO4AEJGVc-mOnlaLYZ3QkXYA5a9IzPqtlzG1Il5-diRVDLyQAqr6FfHW2oXV_3i0ksm9X7Et2MZ78RZiXgkzPU1BVdPb6CrbUkjd5yHX2qpEJFRLdekNotO3NBFG8I-7bWJDKN6IdyAPGOTGt2QKJhb88YFCZks"/>
+                                <div className="absolute bottom-1 right-1 h-5 w-5 rounded-full bg-emerald-500 border-4 border-background-dark z-10"></div>
+                            </div>
+                            <div className="relative mt-5 max-w-sm rounded-2xl bg-surface-dark border border-primary/20 p-5 shadow-lg backdrop-blur-sm">
+                                <div className="absolute -top-2 left-1/2 -ml-2 h-4 w-4 rotate-45 border-l border-t border-primary/20 bg-surface-dark"></div>
+                                <p className="text-center text-sm leading-relaxed text-slate-200">
+                                    "Greetings, Warden! Your <span className="font-bold text-primary">Visual Focus</span> score hit an all-time high of <span className="font-bold text-white">92%</span> today."
+                                </p>
+                            </div>
+                        </section>
+                        <section className="grid grid-cols-2 gap-3">
+                            {/* Stats Cards */}
+                            <div className="relative flex flex-col gap-1 rounded-xl bg-white dark:bg-surface-dark p-4 shadow-sm border border-transparent dark:border-white/5">
+                                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Fluency</span>
+                                <div className="flex items-baseline gap-1"><span className="text-2xl font-bold text-slate-900 dark:text-white">145</span><span className="text-xs font-medium text-slate-400">WPM</span></div>
+                            </div>
+                             <div className="relative flex flex-col gap-1 rounded-xl bg-white dark:bg-surface-dark p-4 shadow-sm border border-transparent dark:border-white/5">
+                                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Accuracy</span>
+                                <div className="flex items-baseline gap-1"><span className="text-2xl font-bold text-slate-900 dark:text-white">96</span><span className="text-xs font-medium text-slate-400">%</span></div>
+                            </div>
+                        </section>
+                        <section className="rounded-xl bg-white dark:bg-surface-dark border border-transparent dark:border-white/5 p-5 shadow-sm">
+                            <div className="flex items-center justify-between mb-6">
+                                <div><h3 className="font-bold text-slate-900 dark:text-white">Comprehension Streak</h3><p className="text-xs text-slate-500">Last 7 days performance</p></div>
+                                <button onClick={() => navigate('/parent-report')} className="text-xs font-medium text-primary hover:text-primary-dark">View Details</button>
+                            </div>
+                            <div className="flex items-end justify-between h-24 w-full gap-2">
+                                {/* Bar Chart Sim */}
+                                {[40, 65, 50, 80, 30, 95, 10].map((h, i) => (
+                                    <div key={i} className="flex flex-col items-center gap-2 flex-1 group">
+                                        <div className={`w-full rounded-t-sm transition-all relative ${h===95 ? 'bg-primary shadow-glow' : 'bg-primary/20'}`} style={{height: `${h}%`}}></div>
+                                        <span className="text-[10px] text-slate-500">{['M','T','W','T','F','S','S'][i]}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    </main>
+                    <BottomNav active="progress" />
+                </div>
+            );
+        };
+
+        // Screen 8: Parent Report
+        const ParentReportScreen = () => {
+             const navigate = useNavigate();
+             return (
+                <div className="relative min-h-screen flex flex-col max-w-md mx-auto w-full shadow-2xl overflow-hidden bg-background-dark">
+                    <header className="flex flex-col p-4 pb-2 bg-background-dark sticky top-0 z-10">
+                        <div className="flex items-center justify-between h-12">
+                            <button onClick={() => navigate(-1)} className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/10 transition-colors">
+                                <span className="material-symbols-outlined text-white text-[24px]">arrow_back_ios_new</span>
+                            </button>
+                            <div className="flex items-center gap-2 bg-surface-dark px-3 py-1.5 rounded-full border border-white/5">
+                                <span className="material-symbols-outlined text-accent-purple text-[18px]">calendar_today</span>
+                                <p className="text-accent-purple text-sm font-bold tracking-wide">Oct 10-17</p>
+                            </div>
+                            <div className="w-10"></div>
+                        </div>
+                        <div className="mt-4 flex items-center gap-4">
+                            <div className="relative">
+                                <div className="w-16 h-16 rounded-full bg-cover bg-center border-2 border-primary" style={{backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuBIshYD5JNKH8cM9EEyGiQMp9krGI8Nwv79OIGG9PbD6rVTN9uN77m-SlkoLGlrq2ET0G6iwI77T-WIGr_Alzty4yH1Tds6EgCPOyw_PhLBRWukgErpV06zFMy2GE-aqgdMh8klqdlTqk6WQJt57e4Luo5OBr7DiL6sbIU1tFg6_n6gYn-gJvZ4tx7iCcWD-1S4SdunMSU9wQtUEEhooV88BY_mYnNIv4_JylvNuXx5fa8OjTrl97PdB5ZCBQDcGbWqxXaCsWixWhFK')"}}></div>
+                                <div className="absolute -bottom-1 -right-1 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full border border-background-dark">Lvl 5</div>
+                            </div>
+                            <div>
+                                <h1 className="text-2xl font-bold leading-tight text-white">Leo's Weekly Report</h1>
+                                <p className="text-accent-purple text-sm">Warden of the Whispering Woods</p>
+                            </div>
+                        </div>
+                    </header>
+                    <main className="flex-1 flex flex-col gap-6 p-4 pb-32">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-surface-dark rounded-2xl p-5 flex flex-col justify-between min-h-[140px] border border-white/5 relative overflow-hidden group">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className="bg-orange-500/20 text-orange-400 p-1.5 rounded-lg"><span className="material-symbols-outlined text-[20px] fill-1">local_fire_department</span></span>
+                                    <p className="text-accent-purple text-sm font-medium">Streak</p>
+                                </div>
+                                <div>
+                                    <p className="text-3xl font-bold text-white mb-1">12 Days</p>
+                                    <p className="text-accent-green text-xs font-bold flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">trending_up</span> +2 days</p>
+                                </div>
+                            </div>
+                             <div className="bg-surface-dark rounded-2xl p-5 flex flex-col justify-between min-h-[140px] border border-white/5 relative overflow-hidden group">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className="bg-primary/20 text-primary p-1.5 rounded-lg"><span className="material-symbols-outlined text-[20px]">schedule</span></span>
+                                    <p className="text-accent-purple text-sm font-medium">Time Read</p>
+                                </div>
+                                <div>
+                                    <p className="text-3xl font-bold text-white mb-1">3h 45m</p>
+                                    <p className="text-accent-green text-xs font-bold flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">arrow_upward</span> 15%</p>
+                                </div>
+                            </div>
+                        </div>
+                        <section className="bg-surface-dark rounded-2xl p-6 border border-white/5">
+                            <div className="flex justify-between items-start mb-6">
+                                <div>
+                                    <h3 className="text-lg font-bold text-white flex items-center gap-2">Eye-Tracking Insights</h3>
+                                    <p className="text-accent-purple text-sm mt-1">Reading Fluency (WPM)</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-2xl font-bold text-white">145</p>
+                                </div>
+                            </div>
+                            <div className="w-full h-40 relative">
+                                <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 300 100">
+                                    <defs>
+                                        <linearGradient id="chartGradient" x1="0" x2="0" y1="0" y2="1">
+                                            <stop offset="0%" stopColor="#930df2" stopOpacity="0.4"></stop>
+                                            <stop offset="100%" stopColor="#930df2" stopOpacity="0"></stop>
+                                        </linearGradient>
+                                    </defs>
+                                    <path d="M0 70 Q 30 65, 50 50 T 100 45 T 150 30 T 200 40 T 250 20 T 300 15 V 100 H 0 Z" fill="url(#chartGradient)"></path>
+                                    <path d="M0 70 Q 30 65, 50 50 T 100 45 T 150 30 T 200 40 T 250 20 T 300 15" fill="none" stroke="#930df2" strokeLinecap="round" strokeWidth="3"></path>
+                                </svg>
+                            </div>
+                        </section>
+                    </main>
+                    <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background-dark via-background-dark to-transparent w-full max-w-md mx-auto z-20">
+                        <div className="relative bg-gradient-to-br from-[#531e84] to-[#250f38] p-5 rounded-2xl border border-primary/30 shadow-2xl overflow-hidden">
+                            <div className="flex items-center gap-4 relative z-10">
+                                <div className="h-10 w-10 bg-white/10 rounded-full flex items-center justify-center shrink-0 border border-white/10">
+                                    <span className="material-symbols-outlined text-accent-purple">lock_open</span>
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="text-white font-bold text-base">Unlock Detailed Analytics</h3>
+                                    <p className="text-accent-purple text-xs mt-0.5">See sentence-by-sentence breakdowns.</p>
+                                </div>
+                            </div>
+                            <button className="w-full mt-4 bg-white text-primary hover:bg-gray-100 font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">Go Premium</button>
+                        </div>
+                    </div>
+                </div>
+             )
+        }
+
+        // Screen 11: Leaderboard
+        const LeaderboardScreen = () => {
+             const navigate = useNavigate();
+             return (
+                 <div className="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white overflow-x-hidden selection:bg-primary selection:text-white relative min-h-screen flex flex-col pb-[140px]">
+                     <header className="sticky top-0 z-30 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-gray-200 dark:border-white/5">
+                        <div className="flex items-center justify-between px-4 py-3">
+                            <button onClick={() => navigate(-1)} className="flex size-10 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 dark:text-white dark:hover:bg-white/10 transition-colors">
+                                <span className="material-symbols-outlined">arrow_back</span>
+                            </button>
+                            <div className="flex flex-col items-center">
+                                <h1 className="text-lg font-bold leading-tight tracking-tight text-center uppercase">World Champions</h1>
+                                <span className="text-xs text-primary font-medium tracking-wide">Season 4: The Rift</span>
+                            </div>
+                            <button className="flex size-10 items-center justify-center rounded-full text-primary hover:bg-primary/10 transition-colors">
+                                <span className="material-symbols-outlined">trophy</span>
+                            </button>
+                        </div>
+                    </header>
+                    <div className="px-4 py-4">
+                        <div className="flex h-10 w-full items-center justify-center rounded-xl bg-slate-200 dark:bg-[#2d1b36] p-1">
+                            <button className="flex flex-1 h-full items-center justify-center rounded-lg bg-white dark:bg-primary shadow-sm text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white transition-all">Global</button>
+                            <button className="flex flex-1 h-full items-center justify-center rounded-lg text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-[#b290cb] hover:text-slate-900 dark:hover:text-white transition-all">Friends</button>
+                            <button className="flex flex-1 h-full items-center justify-center rounded-lg text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-[#b290cb] hover:text-slate-900 dark:hover:text-white transition-all">School</button>
+                        </div>
+                    </div>
+                    <section className="relative w-full px-4 pt-4 pb-8">
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-64 bg-primary/20 blur-[60px] rounded-full -z-10"></div>
+                        <div className="flex items-end justify-center gap-4 w-full max-w-md mx-auto">
+                            {/* Rank 2 */}
+                            <div className="flex flex-col items-center gap-2 w-1/3 z-10 translate-y-4">
+                                <div className="relative">
+                                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-surface-dark text-accent-silver text-xs font-bold px-2 py-0.5 rounded-full border border-accent-silver shadow-md">#2</div>
+                                    <div className="w-20 h-20 rounded-full p-1 bg-gradient-to-b from-accent-silver to-transparent">
+                                        <img className="w-full h-full rounded-full object-cover border-2 border-[#1b1022]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBRw9-u-8b-Sha6sj2IHgsJ-PNTJMro80j_3Tgwp_w1eQXWb9YF7nB6KSif19T6E49oEXowerSPbkEyBqYTbolu3D_w0Kxu4uGroPbwIor6RStTUQfUhPmCoG-uLDJPZyAMdf79eY2qAZW9BpOXYoOMrTw4BIBipPscmkWmBy5NehkH2o_7_09Yl7fcUIEqG47ytwkSAWiX9eoEw_4KoL4O2ccIe8oLYGiVCo7tdgrbTA3vaX-k-OHqWot8EsTw1IGI6QBpr0P9DBZL"/>
+                                    </div>
+                                </div>
+                                <div className="text-center"><p className="text-sm font-bold truncate w-full">PageRogue</p><p className="text-xs text-[#b290cb] font-medium">14,200 XP</p></div>
+                            </div>
+                            {/* Rank 1 */}
+                             <div className="flex flex-col items-center gap-2 w-1/3 z-20 -translate-y-2">
+                                <div className="relative">
+                                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-accent-gold drop-shadow-lg animate-pulse"><span className="material-symbols-outlined" style={{fontSize: '32px', fontVariationSettings: "'FILL' 1"}}>crown</span></div>
+                                    <div className="w-24 h-24 rounded-full p-1 bg-gradient-to-b from-accent-gold via-primary to-primary shadow-[0_0_20px_rgba(147,13,242,0.6)]">
+                                        <img className="w-full h-full rounded-full object-cover border-4 border-[#1b1022]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAA81UwBMKq2vtXgMJQU8bWIgApYH_4xzmX9ZM95gJSDc_izAimngoMjAKCe1YFhdE0S-jfNZtyAwqiYpONqC4UG5T2ApcRmE8wDqm4UHbDm3yQFa4NkuTNihOMGHqum8hJyDQwUcLrYP8v3a_2CXrxZCFS-YFhmI-b5UWg-P_-l29Y0Tar_8l_Cc4UAK864BcesX2w3OsxeNMV94h_ljyCu_N7CdvykrMg0s_HqoJPKwZbvDg4SJiWuSxChcjeGXDoTx5fpmm-e5m_"/>
+                                    </div>
+                                </div>
+                                <div className="text-center mt-3"><p className="text-base font-bold text-white truncate w-full">WardenOfBooks</p><p className="text-sm text-primary font-bold">15,400 XP</p></div>
+                            </div>
+                            {/* Rank 3 */}
+                            <div className="flex flex-col items-center gap-2 w-1/3 z-10 translate-y-4">
+                                <div className="relative">
+                                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-surface-dark text-accent-bronze text-xs font-bold px-2 py-0.5 rounded-full border border-accent-bronze shadow-md">#3</div>
+                                    <div className="w-20 h-20 rounded-full p-1 bg-gradient-to-b from-accent-bronze to-transparent">
+                                        <img className="w-full h-full rounded-full object-cover border-2 border-[#1b1022]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAZzz_PoW_u2bd1CtR986Fxhe-MBhChpbqTkHZPvAH2I5eAn1nfc2nYfwOIX6QnhtMRL3qnqDkmZm3zu0qzCYZudJAEtIAyNEqVRDtnyz3gyjp5U5WX0SuRPE-hX83-bhOf37Ye2KANpVXfibUHlRJgdbXd6pKhH4rs0x-aoAGeLVde540p9Fy2pkU_3ksKAOCnyJSgBGeYgGcc3ZDkeW84RlXLyzpkR4q2Ol9iIWicecKFXRi_uoDUaHk-42MPsuPfu89o-q28p6_q"/>
+                                    </div>
+                                </div>
+                                <div className="text-center"><p className="text-sm font-bold truncate w-full">SirReadALot</p><p className="text-xs text-[#b290cb] font-medium">13,850 XP</p></div>
+                            </div>
+                        </div>
+                    </section>
+                    <main className="flex-1 px-4 flex flex-col gap-3">
+                         <div className="group flex items-center justify-between bg-white dark:bg-[#25162e] p-3 rounded-xl border border-gray-100 dark:border-white/5 shadow-sm">
+                            <div className="flex items-center gap-4">
+                                <span className="text-sm font-bold text-slate-400 w-6 text-center">4</span>
+                                <div className="relative"><img className="w-10 h-10 rounded-full object-cover bg-gray-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB8ddyqtktaw8ejCx1YsNtgeL5XJ64pZoaVbWjwN1T7e9_QUuUVqMlR0mj1wDC4jNRS_PZneLfAbfJJX9r06Z7UADvhgiFQ_heSt82c0N0odNy4W-umBh3IKY4yOODtFWjbqgn69atb2hyIgPNOaY-lsCvwm0xz0AiKEnnrqX_ZeAppmhqxaej20kr13gJM4AYiktwdOYOmjVo4L7cMXgkTtjc4g3CvQq7k1sf9DBN9CjqNdJR9L6jgZ8e1fcV3MBpkMOGS3njtQLri"/></div>
+                                <div className="flex flex-col"><span className="text-sm font-bold text-slate-800 dark:text-white">BookWorm99</span><span className="text-[10px] text-slate-500 dark:text-[#b290cb]">Lvl 12 Scholar</span></div>
+                            </div>
+                            <span className="text-sm font-bold text-primary">12,400 XP</span>
+                        </div>
+                    </main>
+                    <div className="fixed bottom-0 left-0 w-full z-40">
+                         <div className="px-4 pb-2 w-full">
+                            <div className="w-full bg-primary rounded-xl shadow-lg shadow-primary/30 p-3 flex items-center justify-between border border-white/10 backdrop-blur-sm">
+                                <div className="flex items-center gap-4">
+                                    <div className="flex flex-col items-center justify-center w-8"><span className="text-[10px] text-white/80 uppercase font-bold">Rank</span><span className="text-lg font-bold text-white">42</span></div>
+                                    <div className="w-px h-8 bg-white/20"></div>
+                                    <div className="relative">
+                                        <img className="w-10 h-10 rounded-full object-cover border-2 border-white/30" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAK_Z1n-9DzPd1HB1QbzzEWphaQ8Da0yc8sQdEDsrB2BXftNfCj0PJQOZAjybtLCWOO0pp3snKFp2n1tzwKx--uzpEA3iWFcpDqsPx8es8lTFYOV08PhZcAVlhYSLWYIXLjEsaxeZ1G7hN-p43szw_IkYBWuNrXm-whGdVmgxOiB32Kg6l94clxQ6BMx2HY4-SRQrieoaY4flmzbL4ScJyXNmxAwnxjLrc2ws0ynXeGK8uaBphMtZ-ARMF5pXFBi3mLvapGaAtA10Hi"/>
+                                        <div className="absolute -bottom-1 -right-1 bg-accent-gold text-surface-dark rounded-full p-0.5"><span className="material-symbols-outlined text-[10px] block">bolt</span></div>
+                                    </div>
+                                    <div className="flex flex-col"><span className="text-sm font-bold text-white">You</span><span className="text-[10px] text-white/80">Lvl 5 Novice</span></div>
+                                </div>
+                                <div className="flex flex-col items-end"><span className="text-sm font-bold text-white">4,520 XP</span><div className="flex items-center gap-1 text-[10px] text-white/80"><span className="material-symbols-outlined text-[10px]">arrow_upward</span><span>12 ranks</span></div></div>
+                            </div>
+                        </div>
+                        <BottomNav active="profile" />
+                    </div>
+                 </div>
+             )
+        }
+
+        // --- Main App Component with Routing ---
+        const App = () => {
+            return (
+                <MemoryRouter>
+                    <Routes>
+                        <Route path="/" element={<WelcomeScreen />} />
+                        <Route path="/onboarding" element={<OnboardingScreen />} />
+                        <Route path="/calibration" element={<CalibrationScreen />} />
+                        <Route path="/dashboard" element={<DashboardScreen />} />
+                        <Route path="/library" element={<LibraryScreen />} />
+                        <Route path="/reading" element={<ReadingScreen />} />
+                        <Route path="/battle" element={<BattleScreen />} />
+                        <Route path="/inventory" element={<InventoryScreen />} />
+                        <Route path="/progress" element={<ProgressScreen />} />
+                        <Route path="/parent-report" element={<ParentReportScreen />} />
+                        <Route path="/profile" element={<LeaderboardScreen />} />
+                    </Routes>
+                </MemoryRouter>
+            );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
